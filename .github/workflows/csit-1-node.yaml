@@ -41,7 +41,7 @@
             echo "org.jolokia.password=admin" >> /home/user/karaf-0.18.1/etc/org.jolokia.osgi.cfg'
    
         - name: Robot Setup    
-          uses: ./.github/workflows/templates/robot-setup.yml
+          uses: ./.github/workflows/templates/robot-setup.yml@ayushishu
         - name: Delay for 30 seconds
           run: sleep 30
 
