@@ -1,5 +1,5 @@
 ---
-name: Build Ubuntu/CentOS Docker Image and Push them to Docker registry
+name: Build Robot-Docker-Image and Builder-Docker-image Push them to Docker registry
 
 on:
   push:
