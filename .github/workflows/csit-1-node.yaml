@@ -44,7 +44,7 @@
           uses: ./.github/action/ssh-setup-action
           with: 
             docker_repository: ${{ vars.DOCKER_REPOSITORY }}
-            robot_image: ${{ vars.ROBOT_IMAGE }}
+            robot_image: ${{ vars.ROBOT_BASE_IMAGE_NAME }}
         - name: Delay for 10 seconds
           run: sleep 10
 
