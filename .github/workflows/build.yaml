@@ -1,112 +1,124 @@
 ---
-name: Build Robot-Docker-Image and Builder-Docker-image Push them to Docker registry
-
-on:
-  push:
-    branches:
-      - '*'
-  workflow_dispatch:
-    inputs:
-      OS_FLAVOR:
-        description: "Linux Flavor"
-        required: true
-        type: string
-        default: ubuntu
-
-env:
-  DOCKER_REGISTRY: "ghcr.io"
-
-jobs:
-  builder-docker-image:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Build Ubuntu Docker image
-        # yamllint disable-line rule:line-length
-        run: docker build -t ${{ vars.DOCKER_REPOSITORY }}/${{ vars.ODL_BASE_IMAGE_NAME }} builder/ubuntu
-
-      # - name: Clone and test int-dist repo
-      #   # yamllint disable-line rule:line-length
-      #   run: |
-      #     docker run ${{ vars.DOCKER_REPOSITORY }}/${{ vars.ODL_BASE_IMAGE_NAME }} \
-      #     bash -c 'git clone "https://git.opendaylight.org/gerrit/integration/distribution" && \
-      #              cd /distribution && mvn clean install'
-
-      - name: Authenticate to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Push Docker image
-        # yamllint disable-line rule:line-length
-        run: docker push ${{ vars.DOCKER_REPOSITORY }}/${{ vars.ODL_BASE_IMAGE_NAME }}
-
-      - name: Authenticate to GHCR
-        uses: docker/login-action@v1
-        with:
-          registry: ${{ env.DOCKER_REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build the Docker image and push to GHCR
-        # yamllint disable-line rule:line-length
-        run: |
-          docker build --tag ${{ env.DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/${{ vars.ODL_BASE_IMAGE_NAME }}:latest builder/ubuntu
-          docker run ${{ env.DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/${{ vars.ODL_BASE_IMAGE_NAME }}:latest
-          docker push ${{ env.DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/${{ vars.ODL_BASE_IMAGE_NAME }}:latest
-
-  Build-And-Test-Robot-Docker-Image:
-    runs-on: ubuntu-latest
-    services:
-      opendaylight:
-        image: opendaylight/opendaylight:0.18.1
-        env:
-          FEATURES: odl-restconf,odl-netconf-topology
-        ports:
-          - 8181:8181
-        options: --name odl-container
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Build Docker image
-        run: docker build -t ${{ vars.DOCKER_REPOSITORY }}/${{ vars.ROBOT_BASE_IMAGE_NAME }} robot/
-
-      - name: Test
-        run: |
-          docker run --network container:odl-container ${{ vars.DOCKER_REPOSITORY }}/${{ vars.ROBOT_BASE_IMAGE_NAME }} bash -c '
-            yum install -y git python3-pip &&
-            pip3 install robotframework robotframework-extendedrequestslibrary &&
-            git clone https://github.com/opendaylight/integration-test.git &&
-            cd integration-test/csit/suites/integration/basic &&
-            robot -L debug \
-                  --variable USER_HOME:/home/centos \
-                  --variable DEFAULT_LINUX_PROMPT:\$ \
-                  --variable ODL_SYSTEM_IP:opendaylight \
-                  --variable ODL_SYSTEM_USER:centos \
-                  ./restconf_modules.robot'
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Push Docker image
-        run: docker push ${{ vars.DOCKER_REPOSITORY }}/${{ vars.ROBOT_BASE_IMAGE_NAME }}
-
-      - name: Authenticate to GHCR
-        uses: docker/login-action@v1
-        with:
-          registry: ${{ env.DOCKER_REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build the Docker image and push to GHCR
-        run: |
-               docker build --tag ${{ env.DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/${{ vars.ROBOT_BASE_IMAGE_NAME }}:latest builder/ubuntu
-               docker run ${{ env.DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/${{ vars.ROBOT_BASE_IMAGE_NAME }}:latest
-               docker push ${{ env.DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/${{ vars.ROBOT_BASE_IMAGE_NAME }}:latest
+  name: Build Robot-Docker-Image and Builder-Docker-image Push them to Docker registry
+  
+  on:
+    push:
+      branches:
+        - '*'
+  
+    workflow_dispatch:
+      inputs:
+        OS_FLAVOR:
+          description: "Linux Flavor"
+          required: true
+          type: string
+          default: ubuntu
+  env:
+    REGISTRY: "ghcr.io"
+    BUILDER_IMAGE_NAME: ${{ github.repository }}-${{ vars.ODL_BASE_IMAGE_NAME }}
+    ROBOT_IMAGE_NAME: ${{ github.repository }}-${{ vars.ROBOT_BASE_IMAGE_NAME }}
+  
+  jobs:
+    Builder-Docker-image:
+      runs-on: ubuntu-latest
+      permissions:
+        contents: read
+        packages: write
+        id-token: write
+  
+      steps:
+        - name: Checkout repository
+          uses: actions/checkout@v3
+  
+        - name: Set up Docker Buildx
+          uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
+  
+        - name: Log into registry ${{ env.REGISTRY }}
+          uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+          with:
+            registry: ${{ env.REGISTRY }}
+            username: ${{ github.actor }}
+            password: ${{ secrets.GITHUB_TOKEN }}
+  
+        - name: Extract Docker metadata
+          id: meta
+          uses: docker/metadata-action@96383f45573cb7f253c731d3b3ab81c87ef81934 # v5.0.0
+          with:
+            images: ${{ env.REGISTRY }}/${{ env.BUILDER_IMAGE_NAME }}-${{ github.event.inputs.OS_FLAVOR || 'ubuntu' }}
+  
+        - name: Build and push Docker image to GHCR
+          id: build-and-push
+          uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
+          with:
+            context: builder/${{ github.event.inputs.OS_FLAVOR || 'ubuntu' }}/
+            push: true
+            tags: ${{ steps.meta.outputs.tags }}
+            labels: ${{ steps.meta.outputs.labels }}
+            cache-from: type=gha
+            cache-to: type=gha,mode=max
+  
+        - name: Build Ubuntu Docker image 
+          # yamllint disable-line rule:line-length
+          run: docker build -t ${{ vars.DOCKER_REPOSITORY }}/${{ vars.ODL_BASE_IMAGE_NAME }}-${{ github.event.inputs.OS_FLAVOR || 'ubuntu' }} builder/${{ github.event.inputs.OS_FLAVOR || 'ubuntu' }}
+  
+        - name: Authenticate to Docker Hub
+          uses: docker/login-action@v2
+          with:
+            username: ${{ secrets.DOCKERHUB_USERNAME }}
+            password: ${{ secrets.DOCKERHUB_TOKEN }}
+  
+        - name: Push image Docker-Hub
+          # yamllint disable-line rule:line-length
+          run: docker push ${{ vars.DOCKER_REPOSITORY }}/${{ vars.ODL_BASE_IMAGE_NAME }}-${{ github.event.inputs.OS_FLAVOR || 'ubuntu' }}
+  
+    Robot-Docker-Image:
+      runs-on: ubuntu-latest
+      permissions:
+        contents: read
+        packages: write
+        id-token: write
+  
+      steps:
+        - name: Checkout repository
+          uses: actions/checkout@v3
+  
+        - name: Set up Docker Buildx
+          uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
+  
+        - name: Log into registry ${{ env.REGISTRY }}
+          uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+          with:
+            registry: ${{ env.REGISTRY }}
+            username: ${{ github.actor }}
+            password: ${{ secrets.GITHUB_TOKEN }}
+  
+        - name: Extract Docker metadata
+          id: meta
+          uses: docker/metadata-action@96383f45573cb7f253c731d3b3ab81c87ef81934 # v5.0.0
+          with:
+            images: ${{ env.REGISTRY }}/${{ env.ROBOT_IMAGE_NAME }}
+  
+        - name: Build and push Docker image to GHCR
+          id: build-and-push
+          uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
+          with:
+            context: builder/ubuntu/
+            push: true
+            tags: ${{ steps.meta.outputs.tags }}
+            labels: ${{ steps.meta.outputs.labels }}
+            cache-from: type=gha
+            cache-to: type=gha,mode=max
+  
+        - name: Build Ubuntu Docker image 
+          # yamllint disable-line rule:line-length
+          run: docker build -t ${{ vars.DOCKER_REPOSITORY }}/${{ vars.ROBOT_BASE_IMAGE_NAME }} robot
+  
+        - name: Authenticate to Docker Hub
+          uses: docker/login-action@v2
+          with:
+            username: ${{ secrets.DOCKERHUB_USERNAME }}
+            password: ${{ secrets.DOCKERHUB_TOKEN }}
+  
+        - name: Push image Docker-Hub
+          # yamllint disable-line rule:line-length
+          run: docker push ${{ vars.DOCKER_REPOSITORY }}/${{ vars.ROBOT_BASE_IMAGE_NAME }}
