@@ -5,6 +5,8 @@
     push:
       branches:
         - '*'
+
+    workflow_dispatch: 
   
   jobs:
     csit:
