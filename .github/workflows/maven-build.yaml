@@ -5,7 +5,8 @@ on:
   push:
     branches:
       - main
-
+  workflow_dispatch:
+    
 jobs:
   Builder-Docker-Image:
     runs-on: ubuntu-latest
