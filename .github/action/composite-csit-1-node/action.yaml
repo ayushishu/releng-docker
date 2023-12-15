@@ -27,7 +27,7 @@ runs:
           echo "org.jolokia.password=admin" >> /home/user/karaf-0.18.1/etc/org.jolokia.osgi.cfg'
       shell: bash
     - name: Robot Setup
-      uses: ayushishu/releng-docker/.github/action/ssh-setup-action@ayush
+      uses: askb/releng-docker/.github/action/ssh-setup-action@ayush
       with:
         docker_repository: ${{ inputs.DOCKER_REPOSITORY }}
         robot_image: ${{ inputs.ROBOT_IMAGE }}
@@ -36,6 +36,6 @@ runs:
       run: sleep 10
       shell: bash
     - name: Run Test
-      uses: ayushishu/releng-docker/.github/action/robot-test-action@ayush
+      uses: askb/releng-docker/.github/action/robot-test-action@ayush
       with:
         test_suite: ${{ inputs.project_name }}
