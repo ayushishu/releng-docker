@@ -20,7 +20,7 @@ jobs:
         run: echo "DOCKER_IMAGE_NAME=$DOCKER_IMAGE_NAME" >> $GITHUB_ENV
 
       - name: Include Composite Action
-        uses: ./.github/actions/test
+        uses: ./.github/action/test
 
       - name: Run Docker Image Test
         run: ./tests/docker_image_test.sh
