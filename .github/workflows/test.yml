@@ -2,7 +2,7 @@ name: Local Test
 
 on:
   workflow_run:
-    workflows: ["ODL Docker Image - Build and Push them to Docker registry"]
+    workflows: ["Build Docker Image"]
     types:
       - completed
 
