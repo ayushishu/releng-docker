@@ -1,0 +1,24 @@
+name: Test Workflow
+
+on:
+  push:
+    branches:
+    - '*'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      DOCKER_IMAGE_NAME: "ayushishu/odl-ubuntu-image"  
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Run Build Workflow
+        uses: ./.github/workflows/odl-docker-image.yaml
+ 
+      - name: Set Docker Image Name
+        run: echo "DOCKER_IMAGE_NAME=$DOCKER_IMAGE_NAME" >> $GITHUB_ENV
+
+      - name: Run Docker Image Test
+        run: ./tests/docker_image_test.sh
