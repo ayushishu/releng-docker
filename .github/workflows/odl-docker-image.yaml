@@ -1,6 +1,5 @@
 ---
-    name: ODL Docker Image - Build and Push them to Docker registry
-    
+    name: Build Docker Image
     on:
       push:
         branches:
