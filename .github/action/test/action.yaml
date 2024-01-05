@@ -1,7 +1,0 @@
-name: 'Test Action'
-
-runs:
-  using: 'composite'
-  steps:
-    - run: ./.github/action/test/run.sh
-      shell: bash

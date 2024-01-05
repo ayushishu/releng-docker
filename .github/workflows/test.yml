@@ -1,26 +1,28 @@
-name: Test Workflow
+name: Local Test
 
 on:
-  push:
-    branches:
-      - '*'
+  workflow_run:
+    workflows: ["ODL Docker Image - Build and Push them to Docker registry"]
+    types:
+      - completed
 
 jobs:
-  test:
+  local_test:
     runs-on: ubuntu-latest
 
-    env:
-      DOCKER_IMAGE_NAME: "ayushishu/odl-ubuntu-image"
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
+    - name: Checkout Repository
+      uses: actions/checkout@v2
 
-      - name: Set Docker Image Name
-        run: echo "DOCKER_IMAGE_NAME=$DOCKER_IMAGE_NAME" >> $GITHUB_ENV
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
 
-      - name: Include Composite Action
-        uses: ./.github/action/test
+    - name: Install Dependencies
+      run: |
+        pip install -r requirements.txt
 
-      - name: Run Docker Image Test
-        run: ./tests/docker_image_test.sh
+    - name: Run Tests Locally
+      run: |
+        pytest tests/
