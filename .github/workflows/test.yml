@@ -5,6 +5,7 @@ on:
     workflows: ["Build Docker Image"]
     types:
       - completed
+    branches: [test-workflow]
 
 jobs:
   local_test:
