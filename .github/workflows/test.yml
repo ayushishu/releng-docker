@@ -14,4 +14,8 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Validate Workflow Syntax
-        run: find . -name '*.yml' -exec yamllint {} +
+        run: |
+          for file in $(find . -name '*.yml'); do
+            echo "Validating $file"
+            yamllint $file
+          done
