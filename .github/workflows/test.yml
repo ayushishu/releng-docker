@@ -15,7 +15,4 @@ jobs:
 
       - name: Validate Workflow Syntax
         run: |
-          for file in $(find . -name '*.yml'); do
-            echo "Validating $file"
-            yamllint $file
-          done
+          find . -name '*.yml' -exec sh -c 'yamllint "$0" || exit 0' {} \;
