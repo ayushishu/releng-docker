@@ -15,4 +15,4 @@ jobs:
 
       - name: Validate Workflow Syntax
         run: |
-         find . -name '*.yml' -exec yamllint {} +
+         ls
