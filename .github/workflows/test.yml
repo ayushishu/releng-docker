@@ -2,8 +2,8 @@ name: Validate Workflow Syntax
 
 on:
   push:
-    branches:
-      - '*'
+    paths:
+      - '**/*.yml'
 
 jobs:
   syntax-check:
